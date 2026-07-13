@@ -1,0 +1,15 @@
+node_modules
+dist
+.turbo
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage
+*.log
+apps/chrome-extension/dist
+apps/backend-api/dist
+packages/*/dist
+supabase/.temp
+supabase/.branches

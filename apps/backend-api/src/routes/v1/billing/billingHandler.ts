@@ -1,0 +1,114 @@
+import { Type } from '@sinclair/typebox'
+import type { FastifyInstance } from 'fastify'
+import type { Environment } from '../../../config/environment.js'
+import { createAuthValidation } from '../../../middlewares/authValidation.js'
+import { getStripe } from '../../../config/stripe.js'
+import { getServiceSupabase } from '../../../config/supabase.js'
+
+const CheckoutSchema = {
+  body: Type.Object({
+    priceId: Type.String(),
+  }),
+}
+
+const PortalSchema = {
+  body: Type.Object({}),
+}
+
+export async function registerBillingRoutes(app: FastifyInstance, env: Environment) {
+  const authValidation = createAuthValidation(env)
+  const stripe = getStripe(env)
+
+  app.post(
+    '/api/v1/billing/checkout',
+    { schema: CheckoutSchema, preHandler: authValidation },
+    async (request, reply) => {
+      if (!stripe) {
+        return reply.status(503).send({
+          type: 'https://api.postpilot.app/errors/service-unavailable',
+          title: 'Billing Unavailable',
+          status: 503,
+          detail: 'Stripe is not configured.',
+          instance: request.url,
+        })
+      }
+
+      const { priceId } = request.body as { priceId: string }
+      const supabase = getServiceSupabase(env)
+
+      const { data: existingCustomer } = await supabase
+        .schema('stripe')
+        .from('customers')
+        .select('id')
+        .eq('user_id', request.userId!)
+        .maybeSingle()
+
+      let customerId = existingCustomer?.id
+
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: request.userEmail,
+          metadata: { user_id: request.userId! },
+        })
+        customerId = customer.id
+        await supabase.schema('stripe').from('customers').insert({
+          id: customerId,
+          user_id: request.userId!,
+          email: request.userEmail ?? null,
+        })
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: priceId || env.STRIPE_PRICE_ID, quantity: 1 }],
+        success_url: 'https://postpilot.app/billing/success',
+        cancel_url: 'https://postpilot.app/billing/cancel',
+        metadata: { user_id: request.userId! },
+      })
+
+      return { checkoutUrl: session.url }
+    },
+  )
+
+  app.post(
+    '/api/v1/billing/portal',
+    { schema: PortalSchema, preHandler: authValidation },
+    async (request, reply) => {
+      if (!stripe) {
+        return reply.status(503).send({
+          type: 'https://api.postpilot.app/errors/service-unavailable',
+          title: 'Billing Unavailable',
+          status: 503,
+          detail: 'Stripe is not configured.',
+          instance: request.url,
+        })
+      }
+
+      const supabase = getServiceSupabase(env)
+      const { data: customer } = await supabase
+        .schema('stripe')
+        .from('customers')
+        .select('id')
+        .eq('user_id', request.userId!)
+        .maybeSingle()
+
+      if (!customer) {
+        return reply.status(404).send({
+          type: 'https://api.postpilot.app/errors/not-found',
+          title: 'Customer Not Found',
+          status: 404,
+          detail: 'No Stripe customer exists for this user.',
+          instance: request.url,
+        })
+      }
+
+      const portal = await stripe.billingPortal.sessions.create({
+        customer: customer.id,
+        return_url: 'https://postpilot.app/billing',
+      })
+
+      return { portalUrl: portal.url }
+    },
+  )
+}
