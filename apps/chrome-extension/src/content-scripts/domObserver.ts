@@ -66,12 +66,12 @@ function scheduleUndo(adapter: PlatformAdapter) {
   undoButton.style.zIndex = '2147483647'
   undoButton.style.padding = '8px 12px'
   undoButton.style.borderRadius = '8px'
-  undoButton.style.border = '1px solid #4a4168'
-  undoButton.style.background = '#9370db'
-  undoButton.style.color = '#faf7ff'
-  undoButton.style.font = '12px Inter, system-ui, sans-serif'
+  undoButton.style.border = '1px solid #e8deff'
+  undoButton.style.background = '#ffffff'
+  undoButton.style.color = '#4c3880'
+  undoButton.style.font = '12px "Avenir Next", Avenir, "Century Gothic", Futura, sans-serif'
   undoButton.style.cursor = 'pointer'
-  undoButton.style.boxShadow = '0 8px 24px rgba(76, 56, 128, 0.35)'
+  undoButton.style.boxShadow = '0 10px 28px rgba(76, 56, 128, 0.14)'
   undoButton.onclick = async () => {
     if (lastReplacement) {
       await adapter.replaceSelection(lastReplacement.original)

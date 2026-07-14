@@ -14,23 +14,27 @@ export function PopupApp() {
 
   if (loading) {
     return (
-      <div className="flex h-40 w-72 items-center justify-center bg-surface-950 text-surface-soft">
+      <div className="flex h-40 w-72 items-center justify-center text-surface-ink">
         <Spinner />
       </div>
     )
   }
 
   return (
-    <div className="w-72 space-y-3 bg-surface-950 p-4 text-surface-soft">
-      <h1 className="text-base font-semibold text-brand-100">Postpilot</h1>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+    <div className="w-72 space-y-3 p-4 text-surface-ink">
+      <h1 className="font-display text-lg font-semibold text-brand-800">Postpilot</h1>
+      {error && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
+          {error}
+        </p>
+      )}
       {authState.isAuthenticated ? (
         <>
-          <p className="text-xs text-brand-200">{authState.session?.email}</p>
+          <p className="truncate text-xs text-surface-muted">{authState.session?.email}</p>
           <Button className="w-full" onClick={() => void openSidePanel()}>
             Open side panel
           </Button>
-          <Button className="w-full" onClick={() => void signOut()}>
+          <Button className="w-full" variant="secondary" onClick={() => void signOut()}>
             Sign out
           </Button>
         </>

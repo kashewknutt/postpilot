@@ -3,12 +3,15 @@
   "name": "Postpilot",
   "description": "AI creator copilot for LinkedIn, X, and YouTube Studio",
   "version": "0.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzqIZVTR+N0Apey+EklGMmKcZEEuuxg+fmC0bvpeqtfQVIFRYzpcNuLKQbNKd8BRj1/yse2orhQ1qRkKGLjsYJzKiZkhngQn4ap6S60Sd9bkwgZfmIJHkwtRJI1zhj8u3rIS+SYknD9EfhNvpSgMCKfiaY095lL46nJrtMGFlD9vRPRrBizgcnBKb0BH2XuhWxNax+O8I0eLRTRArDjQE+QZY+RxiZT9Px/Y0rLK1i1hs+HDgU5m/uh9Yk/BVnPhbHgdgDijidfprToJITXT473uiAEkAQreNcnbIbs0RcNaEx1VeqKp9ln2LKnlr4vnlo8aeUqp9U+se7o8ctwTrqQIDAQAB",
   "permissions": ["storage", "identity", "sidePanel", "activeTab", "alarms", "scripting"],
   "host_permissions": [
     "https://www.linkedin.com/*",
     "https://x.com/*",
     "https://twitter.com/*",
-    "https://studio.youtube.com/*"
+    "https://studio.youtube.com/*",
+    "https://*.supabase.co/*",
+    "https://accounts.google.com/*"
   ],
   "background": {
     "service_worker": "src/background/serviceWorker.ts",
@@ -33,7 +36,7 @@
     }
   ],
   "oauth2": {
-    "client_id": "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "YOUR_CHROME_EXTENSION_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
     "scopes": ["openid", "email", "profile"]
   },
   "icons": {

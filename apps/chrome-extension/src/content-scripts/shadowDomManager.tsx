@@ -20,11 +20,11 @@ export function mountInlineWidget(anchor: HTMLElement, onAction: (action: string
       gap: 6px;
       padding: 6px;
       border-radius: 10px;
-      background: #241e36;
-      color: #f3edff;
-      font: 12px/1.2 Inter, system-ui, sans-serif;
-      box-shadow: 0 8px 24px rgba(76, 56, 128, 0.35);
-      border: 1px solid #4a4168;
+      background: #ffffff;
+      color: #221833;
+      font: 12px/1.2 "Avenir Next", Avenir, "Century Gothic", Futura, sans-serif;
+      box-shadow: 0 10px 28px rgba(76, 56, 128, 0.14);
+      border: 1px solid #e8deff;
     }
     button {
       border: 0;

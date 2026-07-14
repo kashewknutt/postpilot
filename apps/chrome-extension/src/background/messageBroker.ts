@@ -5,7 +5,14 @@ import type {
   ExtensionMessage,
   UsageSummary,
 } from '@postpilot/shared-types'
-import { initializeAuth, signInWithGoogle, signOut, getAccessToken } from './auth.js'
+import {
+  initializeAuth,
+  signInWithGoogle,
+  signOut,
+  getAccessToken,
+  getExtensionId,
+  getOAuthRedirectUrl,
+} from './auth.js'
 import { streamAiGenerate } from './streamClient.js'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
@@ -31,6 +38,11 @@ async function handleMessage(message: ExtensionMessage): Promise<MessageResponse
       return signInWithGoogle()
     case 'AUTH_SIGN_OUT':
       return signOut()
+    case 'AUTH_GET_SETUP':
+      return {
+        extensionId: getExtensionId(),
+        redirectUrl: getOAuthRedirectUrl(),
+      }
     case 'USAGE_GET':
       return fetchUsage()
     case 'BILLING_CHECKOUT':
@@ -44,7 +56,7 @@ async function handleMessage(message: ExtensionMessage): Promise<MessageResponse
 
 async function requireAccessToken(): Promise<string> {
   await initializeAuth()
-  const token = getAccessToken()
+  const token = await getAccessToken()
   if (!token) throw new Error('Authentication required.')
   return token
 }
@@ -84,13 +96,10 @@ async function startCheckout(): Promise<{ checkoutUrl: string }> {
 }
 
 async function handleAiGenerate(payload: AiGenerateMessagePayload): Promise<{ started: boolean }> {
-  const auth = await initializeAuth()
-  if (!auth.isAuthenticated || !auth.session) {
-    throw new Error('Authentication required.')
-  }
+  const token = await requireAccessToken()
 
   const port = chrome.runtime.connect({ name: 'ai-stream' })
-  void streamAiGenerate(auth.session.accessToken, payload.request, {
+  void streamAiGenerate(token, payload.request, {
     onToken: (token) => {
       port.postMessage({ type: 'AI_STREAM_CHUNK', payload: { token } })
       if (payload.tabId) {

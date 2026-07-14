@@ -13,3 +13,4 @@ apps/backend-api/dist
 packages/*/dist
 supabase/.temp
 supabase/.branches
+apps/chrome-extension/.keys/

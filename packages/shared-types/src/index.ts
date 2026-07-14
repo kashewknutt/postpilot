@@ -95,6 +95,7 @@ export type ExtensionMessageType =
   | 'AUTH_GET_STATE'
   | 'AUTH_SIGN_IN'
   | 'AUTH_SIGN_OUT'
+  | 'AUTH_GET_SETUP'
   | 'AI_GENERATE'
   | 'AI_STREAM_CHUNK'
   | 'AI_STREAM_DONE'

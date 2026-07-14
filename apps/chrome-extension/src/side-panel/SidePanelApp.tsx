@@ -13,7 +13,7 @@ const PLATFORM_PROMPTS: Record<string, PromptAction[]> = {
 }
 
 export function SidePanelApp() {
-  const { authState, loading, error, signIn, signOut } = useAuth()
+  const { authState, setup, loading, error, signIn, signOut } = useAuth()
   const [platform, setPlatform] = useState<PlatformId | null>(null)
   const [prompt, setPrompt] = useState('')
   const [streamOutput, setStreamOutput] = useState('')
@@ -21,6 +21,7 @@ export function SidePanelApp() {
   const [usage, setUsage] = useState<UsageSummary | null>(null)
   const [billingError, setBillingError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const refreshUsage = async () => {
     const response = await chrome.runtime.sendMessage({ type: 'USAGE_GET' })
@@ -121,41 +122,83 @@ export function SidePanelApp() {
     if (typeof result === 'string' && result) setPrompt(result)
   }
 
+  const copyExtensionId = async () => {
+    if (!setup?.extensionId) return
+    await navigator.clipboard.writeText(setup.extensionId)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1500)
+  }
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-950 text-surface-soft">
+      <div className="flex min-h-screen items-center justify-center text-surface-ink">
         <Spinner />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-surface-950 p-4 text-surface-soft">
-      <header className="mb-4 border-b border-surface-800 pb-4">
-        <h1 className="text-lg font-semibold text-brand-100">Postpilot</h1>
-        <p className="text-sm text-surface-muted">
+    <div className="min-h-screen p-4 text-surface-ink">
+      <header className="mb-5 border-b border-surface-300 pb-4">
+        <p className="font-display text-2xl font-semibold tracking-tight text-brand-800">
+          Postpilot
+        </p>
+        <p className="mt-1 text-sm text-surface-muted">
           {platform ? `Active platform: ${platform}` : 'Open a supported editor tab'}
         </p>
       </header>
 
       {!authState.isAuthenticated ? (
-        <div className="space-y-3">
-          <p className="text-sm text-brand-200">Sign in to start generating content.</p>
-          <p className="text-xs text-surface-muted">
-            New accounts get {FREE_MONTHLY_GENERATIONS} free generations every month.
-          </p>
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button onClick={() => void signIn()}>Sign in with Google</Button>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm text-surface-soft">Sign in to start generating content.</p>
+            <p className="text-xs text-surface-muted">
+              New accounts get {FREE_MONTHLY_GENERATIONS} free generations every month.
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <Button className="w-full" onClick={() => void signIn()}>
+            Sign in with Google
+          </Button>
+
+          {setup && (
+            <div className="space-y-2 rounded-lg border border-brand-200 bg-brand-50/70 px-3 py-3 text-xs text-surface-soft">
+              <p className="font-medium text-brand-800">Google setup</p>
+              <p>
+                Extension ID:{' '}
+                <button
+                  type="button"
+                  className="font-mono text-brand-700 underline decoration-brand-300"
+                  onClick={() => void copyExtensionId()}
+                >
+                  {setup.extensionId}
+                </button>
+                {copied ? ' · copied' : ''}
+              </p>
+              <p className="text-surface-muted">
+                Use this ID for a Chrome Extension OAuth client in Google Cloud, then set{' '}
+                <span className="font-mono">VITE_GOOGLE_OAUTH_CLIENT_ID</span> and rebuild.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2 text-sm text-brand-200">
-            <span className="truncate">{authState.session?.email}</span>
-            <Button onClick={() => void signOut()}>Sign out</Button>
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="truncate text-surface-soft">{authState.session?.email}</span>
+            <Button variant="ghost" onClick={() => void signOut()}>
+              Sign out
+            </Button>
           </div>
 
           {usage && (
-            <div className="rounded-md border border-surface-800 bg-surface-900 px-3 py-2 text-xs text-brand-200">
+            <div className="rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2 text-xs text-brand-800">
               {usage.isSubscribed ? (
                 <span>Pro plan · unlimited generations</span>
               ) : (
@@ -168,8 +211,8 @@ export function SidePanelApp() {
           )}
 
           {freeLimitReached && (
-            <div className="space-y-2 rounded-md border border-brand-700/50 bg-brand-900/30 p-3">
-              <p className="text-sm text-brand-100">
+            <div className="space-y-2 rounded-lg border border-brand-300 bg-white p-3 shadow-soft">
+              <p className="text-sm text-surface-ink">
                 You&apos;ve used your {FREE_MONTHLY_GENERATIONS} free generations this month.
               </p>
               <p className="text-xs text-surface-muted">
@@ -181,17 +224,23 @@ export function SidePanelApp() {
             </div>
           )}
 
-          {billingError && <p className="text-sm text-red-400">{billingError}</p>}
+          {billingError && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {billingError}
+            </p>
+          )}
 
           <textarea
-            className="h-32 w-full rounded-md border border-surface-700 bg-surface-900 p-3 text-sm text-surface-soft placeholder:text-surface-muted focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-32 w-full rounded-lg border border-surface-300 bg-white p-3 text-sm text-surface-ink placeholder:text-surface-muted shadow-soft focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
             placeholder="Write or paste your draft..."
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
           />
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => void pullSelection()}>Pull selection</Button>
+            <Button variant="secondary" onClick={() => void pullSelection()}>
+              Pull selection
+            </Button>
             {quickPrompts.map((action) => (
               <Button
                 key={action}
@@ -203,7 +252,7 @@ export function SidePanelApp() {
             ))}
           </div>
 
-          <div className="min-h-24 rounded-md border border-surface-800 bg-surface-900 p-3 text-sm whitespace-pre-wrap text-brand-50">
+          <div className="min-h-24 rounded-lg border border-surface-300 bg-white p-3 text-sm whitespace-pre-wrap text-surface-soft shadow-soft">
             {streamOutput || 'Generated output will stream here.'}
           </div>
         </div>
