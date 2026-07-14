@@ -58,8 +58,10 @@ gcloud run deploy postpilot-api --image ... --region asia-south1
 | `VITE_SUPABASE_URL` | Extension build |
 | `VITE_SUPABASE_ANON_KEY` | Extension build |
 | `VITE_API_BASE_URL` | Cloud Run URL, e.g. `https://postpilot-api-xxx.asia-south1.run.app` |
-| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Deploy auth |
-| `GCP_SERVICE_ACCOUNT` | Deploy auth |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/4092394746/locations/global/workloadIdentityPools/github-pool/providers/postpilot` |
+| `GCP_SERVICE_ACCOUNT` | `postpilot@valneetrivial.iam.gserviceaccount.com` |
+
+Do **not** reuse `providers/github-provider` — that provider is locked to `kashewknutt/laravelmix` and will fail Postpilot with `rejected by the attribute condition`.
 
 ## Health check
 
