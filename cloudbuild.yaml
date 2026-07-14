@@ -1,0 +1,49 @@
+# Cloud Build → Artifact Registry → Cloud Run
+# Trigger this from the repository ROOT (not apps/backend-api).
+
+substitutions:
+  _SERVICE: postpilot-api
+  _REGION: asia-south1
+  _IMAGE: asia-south1-docker.pkg.dev/${PROJECT_ID}/postpilot/postpilot-api
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_IMAGE}:$COMMIT_SHA
+      - -t
+      - ${_IMAGE}:latest
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_IMAGE}:$COMMIT_SHA
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_IMAGE}:latest
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_IMAGE}:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=8080
+      - --set-env-vars=NODE_ENV=production,API_HOST=0.0.0.0,API_PORT=8080
+      - >-
+        --set-secrets=SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_ANON_KEY=SUPABASE_ANON_KEY:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,STRIPE_PRICE_ID=STRIPE_PRICE_ID:latest,CORS_ORIGIN=CORS_ORIGIN:latest
+
+images:
+  - ${_IMAGE}:$COMMIT_SHA
+  - ${_IMAGE}:latest

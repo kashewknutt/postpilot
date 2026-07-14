@@ -1,33 +1,68 @@
 # Deploy Backend to Cloud Run
 
-## Prerequisites
+## Why builds failed before
 
-- Google Cloud project with Cloud Run and Artifact Registry enabled
-- Supabase project linked locally via `supabase link`
-- Secrets stored in Google Secret Manager
+1. **GitHub Actions** built only `@postpilot/backend-api` / `@postpilot/chrome-extension` without building `@postpilot/shared-types` and `@postpilot/shared-utils` first → `Cannot find module '@postpilot/shared-*'`.
+2. **Cloud Build / Cloud Run** used `apps/backend-api` as the Docker context (`--source apps/backend-api`). That folder does not contain `pnpm-workspace.yaml` or `packages/*`, so Docker failed copying monorepo files.
 
-## Local Docker build
+This monorepo **must be built from the repository root**.
 
-```bash
-pnpm install
-pnpm --filter @postpilot/backend-api build
-docker build -f apps/backend-api/Dockerfile -t postpilot-api .
-docker run --rm -p 8080:8080 --env-file .env postpilot-api
-```
+## Correct Cloud Run / Cloud Build setup
 
-## Cloud Run deployment
+### Option A — GitHub Actions (recommended)
 
-Use the GitHub Actions workflow in `.github/workflows/deploy-backend.yml` or deploy manually:
+Workflow: [`.github/workflows/deploy-backend.yml`](../.github/workflows/deploy-backend.yml)
+
+Uses:
 
 ```bash
-gcloud run deploy postpilot-api \
-  --source apps/backend-api \
-  --region us-central1 \
-  --allow-unauthenticated
+gcloud run deploy postpilot-api --source .
 ```
+
+### Option B — Cloud Build trigger
+
+1. In GCP → Cloud Build → Triggers
+2. Set **configuration** to `cloudbuild.yaml` in the **repo root**
+3. Do **not** set Dockerfile directory to `apps/backend-api`
+4. Build context = repository root
+
+```bash
+gcloud builds submit --config cloudbuild.yaml
+```
+
+### Option C — Manual
+
+```bash
+docker build -t postpilot-api .
+gcloud run deploy postpilot-api --image ... --region asia-south1
+```
+
+## Secret Manager secrets required on Cloud Run
+
+| Secret | Required |
+|--------|----------|
+| `SUPABASE_URL` | yes |
+| `SUPABASE_ANON_KEY` | yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes |
+| `DATABASE_URL` | yes |
+| `GEMINI_API_KEY` | yes |
+| `STRIPE_SECRET_KEY` | yes |
+| `STRIPE_WEBHOOK_SECRET` | yes |
+| `STRIPE_PRICE_ID` | yes |
+| `CORS_ORIGIN` | yes (`chrome-extension://YOUR_ID`) |
+
+## GitHub secrets for CI extension zip
+
+| Secret | Purpose |
+|--------|---------|
+| `VITE_SUPABASE_URL` | Extension build |
+| `VITE_SUPABASE_ANON_KEY` | Extension build |
+| `VITE_API_BASE_URL` | Cloud Run URL, e.g. `https://postpilot-api-xxx.asia-south1.run.app` |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Deploy auth |
+| `GCP_SERVICE_ACCOUNT` | Deploy auth |
 
 ## Health check
 
 ```bash
-curl http://localhost:8080/health
+curl https://YOUR-CLOUD-RUN-URL/health
 ```

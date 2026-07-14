@@ -7,6 +7,11 @@ on:
     paths:
       - 'apps/backend-api/**'
       - 'packages/**'
+      - 'Dockerfile'
+      - 'cloudbuild.yaml'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
       - '.github/workflows/deploy-backend.yml'
 
 jobs:
@@ -24,16 +29,25 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
+      # Build shared packages first — backend depends on their dist/ types.
+      - run: pnpm --filter @postpilot/shared-types build
+      - run: pnpm --filter @postpilot/shared-utils build
       - run: pnpm --filter @postpilot/backend-api build
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v2
-      - run: |
+      - name: Deploy to Cloud Run from monorepo root
+        env:
+          GCP_REGION: ${{ vars.GCP_REGION }}
+        run: |
+          REGION="${GCP_REGION:-asia-south1}"
           gcloud run deploy postpilot-api \
-            --source apps/backend-api \
-            --region ${{ vars.GCP_REGION || 'us-central1' }} \
+            --source . \
+            --region "$REGION" \
             --allow-unauthenticated \
-            --set-secrets "SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_ANON_KEY=SUPABASE_ANON_KEY:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest"
+            --port 8080 \
+            --set-env-vars "NODE_ENV=production,API_HOST=0.0.0.0,API_PORT=8080" \
+            --set-secrets "SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_ANON_KEY=SUPABASE_ANON_KEY:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,STRIPE_PRICE_ID=STRIPE_PRICE_ID:latest,CORS_ORIGIN=CORS_ORIGIN:latest"
