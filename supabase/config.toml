@@ -1,0 +1,41 @@
+# Postpilot Supabase local development config
+# See https://supabase.com/docs/guides/cli/config
+
+project_id = "postpilot"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "stripe"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.migrations]
+schema_paths = ["./database/*.sql"]
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://*.chromiumapp.org/*"]
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_uri = "http://localhost:54321/auth/v1/callback"
+
+[experimental.pgdelta]
+enabled = true

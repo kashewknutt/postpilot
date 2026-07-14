@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Postpilot",
+  "description": "AI creator copilot for LinkedIn, X, and YouTube Studio",
+  "version": "0.1.0",
+  "permissions": ["storage", "identity", "sidePanel", "activeTab", "alarms", "scripting"],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://studio.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/serviceWorker.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open Postpilot"
+  },
+  "side_panel": {
+    "default_path": "src/side-panel/sidePanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/*",
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://studio.youtube.com/*"
+      ],
+      "js": ["src/content-scripts/bootstrap.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "oauth2": {
+    "client_id": "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
+  "icons": {
+    "16": "src/assets/icon-16.png",
+    "48": "src/assets/icon-48.png",
+    "128": "src/assets/icon-128.png"
+  }
+}
