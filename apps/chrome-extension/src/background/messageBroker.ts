@@ -19,12 +19,22 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string
 
 type MessageResponse = unknown
 
+let aiStreamPort: chrome.runtime.Port | null = null
+
 export function registerMessageBroker(): void {
   chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
     void handleMessage(message)
       .then((response) => sendResponse({ ok: true, data: response }))
       .catch((error: Error) => sendResponse({ ok: false, error: error.message }))
     return true
+  })
+
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== 'ai-stream') return
+    aiStreamPort = port
+    port.onDisconnect.addListener(() => {
+      if (aiStreamPort === port) aiStreamPort = null
+    })
   })
 }
 
@@ -98,10 +108,9 @@ async function startCheckout(): Promise<{ checkoutUrl: string }> {
 async function handleAiGenerate(payload: AiGenerateMessagePayload): Promise<{ started: boolean }> {
   const token = await requireAccessToken()
 
-  const port = chrome.runtime.connect({ name: 'ai-stream' })
   void streamAiGenerate(token, payload.request, {
     onToken: (token) => {
-      port.postMessage({ type: 'AI_STREAM_CHUNK', payload: { token } })
+      aiStreamPort?.postMessage({ type: 'AI_STREAM_CHUNK', payload: { token } })
       if (payload.tabId) {
         void chrome.tabs.sendMessage(payload.tabId, {
           type: 'AI_STREAM_CHUNK',
@@ -110,7 +119,7 @@ async function handleAiGenerate(payload: AiGenerateMessagePayload): Promise<{ st
       }
     },
     onDone: (tokensGenerated, usage) => {
-      port.postMessage({
+      aiStreamPort?.postMessage({
         type: 'AI_STREAM_DONE',
         payload: { tokens_generated: tokensGenerated, usage },
       })
@@ -120,17 +129,15 @@ async function handleAiGenerate(payload: AiGenerateMessagePayload): Promise<{ st
           payload: { tokens_generated: tokensGenerated, usage },
         })
       }
-      port.disconnect()
     },
     onError: (message, status) => {
-      port.postMessage({ type: 'AI_STREAM_ERROR', payload: { message, status } })
+      aiStreamPort?.postMessage({ type: 'AI_STREAM_ERROR', payload: { message, status } })
       if (payload.tabId) {
         void chrome.tabs.sendMessage(payload.tabId, {
           type: 'AI_STREAM_ERROR',
           payload: { message, status },
         })
       }
-      port.disconnect()
     },
   })
 

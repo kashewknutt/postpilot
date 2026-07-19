@@ -37,12 +37,22 @@ export async function registerAiRoutes(app: FastifyInstance, env: Environment) {
         })
       }
 
+      const requestOrigin = request.headers.origin
+      const allowedOrigins = env.CORS_ORIGIN === '*' ? null : env.CORS_ORIGIN.split(',')
+      const corsOrigin =
+        env.CORS_ORIGIN === '*'
+          ? (requestOrigin ?? '*')
+          : (allowedOrigins?.find((o) => o === requestOrigin) ?? allowedOrigins?.[0] ?? '')
+
       reply.hijack()
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         Connection: 'keep-alive',
         'X-Accel-Buffering': 'no',
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Credentials': 'true',
+        Vary: 'Origin',
       })
 
       let tokensGenerated = 0

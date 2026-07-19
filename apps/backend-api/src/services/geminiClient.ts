@@ -10,17 +10,32 @@ const ACTION_PROMPTS: Record<string, string> = {
   rewrite: 'Rewrite the following content while preserving meaning.',
   shorten: 'Shorten the following content while keeping key points.',
   expand: 'Expand the following content with more detail and clarity.',
-  professional: 'Rewrite the following content in a professional tone.',
+  professional:
+    'Rewrite the following content in a polished, professional tone suitable for a LinkedIn post from an industry expert.',
   casual: 'Rewrite the following content in a casual, friendly tone.',
+  informal:
+    'Rewrite the following content in a relaxed, informal, conversational voice, as if talking directly to a friend or peer.',
+  steps:
+    'Rewrite the following content as a clear step-by-step breakdown. Number each step (1., 2., 3., ...) on its own line, in the order a reader should follow them.',
+  storytelling:
+    'Rewrite the following content as a short, engaging narrative with a clear beginning, middle, and end, the way a compelling LinkedIn story post reads.',
   custom: 'Improve the following content for social media publishing.',
 }
+
+const OUTPUT_RULES = [
+  'Output exactly one finished post, ready to publish as-is.',
+  'Do not offer multiple options or alternatives.',
+  'Do not use markdown formatting: no asterisks, bold, italics, headers, blockquotes, or bullet markers.',
+  'Do not add preamble, explanations, labels, or commentary about what you changed.',
+  'Plain text only, using line breaks for paragraphs where natural.',
+].join(' ')
 
 export async function* streamGeminiCompletion(
   env: Environment,
   input: GenerateInput,
 ): AsyncGenerator<string> {
   const systemPrompt = ACTION_PROMPTS[input.action] ?? ACTION_PROMPTS.custom
-  const prompt = `${systemPrompt}\n\nPlatform: ${input.platform}\n\nContent:\n${input.content}`
+  const prompt = `${systemPrompt}\n\n${OUTPUT_RULES}\n\nPlatform: ${input.platform}\n\nContent:\n${input.content}`
 
   if (!env.GEMINI_API_KEY) {
     const stub = `[${input.action}] ${input.content}`

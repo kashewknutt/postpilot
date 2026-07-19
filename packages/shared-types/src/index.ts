@@ -6,6 +6,9 @@ export type PromptAction =
   | 'expand'
   | 'professional'
   | 'casual'
+  | 'informal'
+  | 'steps'
+  | 'storytelling'
   | 'custom'
 
 export type SubscriptionStatus =

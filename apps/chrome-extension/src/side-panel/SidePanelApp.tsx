@@ -7,9 +7,21 @@ import { useAuth } from '../shared/hooks/useAuth'
 import '../shared/styles.css'
 
 const PLATFORM_PROMPTS: Record<string, PromptAction[]> = {
-  linkedin: ['professional', 'rewrite', 'expand', 'shorten'],
+  linkedin: ['professional', 'informal', 'steps', 'storytelling', 'rewrite', 'expand', 'shorten'],
   x: ['casual', 'rewrite', 'shorten'],
   'youtube-studio': ['expand', 'rewrite', 'professional'],
+}
+
+const ACTION_LABELS: Record<PromptAction, string> = {
+  professional: 'Professional',
+  informal: 'Informal',
+  steps: 'Step-by-step',
+  storytelling: 'Storytelling',
+  casual: 'Casual',
+  rewrite: 'Rewrite',
+  expand: 'Expand',
+  shorten: 'Shorten',
+  custom: 'Custom',
 }
 
 export function SidePanelApp() {
@@ -88,12 +100,16 @@ export function SidePanelApp() {
     setBillingError(null)
     setStreaming(true)
     setStreamOutput('')
-    await chrome.runtime.sendMessage({
+    const response = await chrome.runtime.sendMessage({
       type: 'AI_GENERATE',
       payload: {
         request: { platform, action, content: prompt },
       },
     })
+    if (!response?.ok) {
+      setStreaming(false)
+      setStreamOutput(`Error: ${response?.error ?? 'Failed to start generation.'}`)
+    }
   }
 
   const handleUpgrade = async () => {
@@ -247,7 +263,7 @@ export function SidePanelApp() {
                 disabled={streaming || freeLimitReached}
                 onClick={() => void handleGenerate(action)}
               >
-                {streaming ? <Spinner /> : action}
+                {streaming ? <Spinner /> : ACTION_LABELS[action]}
               </Button>
             ))}
           </div>
