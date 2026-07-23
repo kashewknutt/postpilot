@@ -1,4 +1,6 @@
 import { Type, Static } from '@sinclair/typebox'
+import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 
 export const EnvironmentSchema = Type.Object({
   API_PORT: Type.Number({ default: 8080 }),
@@ -25,6 +27,20 @@ const REQUIRED_RUNTIME_KEYS = [
 ] as const
 
 export function loadEnvironment(): Environment {
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const rootEnv = join(process.cwd(), '.env')
+      const parentEnv = join(process.cwd(), '../../.env')
+      if (existsSync(rootEnv)) {
+        process.loadEnvFile(rootEnv)
+      } else if (existsSync(parentEnv)) {
+        process.loadEnvFile(parentEnv)
+      }
+    } catch {
+      // Ignored
+    }
+  }
+
   // Cloud Run injects PORT; fall back to API_PORT for local/dev.
   const port = Number(process.env.PORT ?? process.env.API_PORT ?? 8080)
 

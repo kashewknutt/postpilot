@@ -30,6 +30,7 @@ export function SidePanelApp() {
   const [prompt, setPrompt] = useState('')
   const [streamOutput, setStreamOutput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [activeAction, setActiveAction] = useState<PromptAction | null>(null)
   const [usage, setUsage] = useState<UsageSummary | null>(null)
   const [billingError, setBillingError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -65,6 +66,7 @@ export function SidePanelApp() {
       }
       if (message.type === 'AI_STREAM_DONE') {
         setStreaming(false)
+        setActiveAction(null)
         if (message.payload?.usage) {
           setUsage(message.payload.usage as UsageSummary)
         } else {
@@ -73,6 +75,7 @@ export function SidePanelApp() {
       }
       if (message.type === 'AI_STREAM_ERROR') {
         setStreaming(false)
+        setActiveAction(null)
         setStreamOutput((prev) => `${prev}\n\nError: ${message.payload.message}`)
         if (message.payload?.status === 402) {
           void refreshUsage()
@@ -99,6 +102,7 @@ export function SidePanelApp() {
     }
     setBillingError(null)
     setStreaming(true)
+    setActiveAction(action)
     setStreamOutput('')
     const response = await chrome.runtime.sendMessage({
       type: 'AI_GENERATE',
@@ -108,6 +112,7 @@ export function SidePanelApp() {
     })
     if (!response?.ok) {
       setStreaming(false)
+      setActiveAction(null)
       setStreamOutput(`Error: ${response?.error ?? 'Failed to start generation.'}`)
     }
   }
@@ -263,7 +268,7 @@ export function SidePanelApp() {
                 disabled={streaming || freeLimitReached}
                 onClick={() => void handleGenerate(action)}
               >
-                {streaming ? <Spinner /> : ACTION_LABELS[action]}
+                {streaming && activeAction === action ? <Spinner /> : ACTION_LABELS[action]}
               </Button>
             ))}
           </div>
