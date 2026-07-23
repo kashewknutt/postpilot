@@ -3,7 +3,7 @@ import type { PlatformId, ProblemDetails } from '@postpilot/shared-types'
 export const MAX_CONTENT_LENGTH = 3000
 
 /** Free AI generations available each calendar month for unsubscribed users. */
-export const FREE_MONTHLY_GENERATIONS = 999999
+export const FREE_MONTHLY_GENERATIONS = 5
 
 export function isActiveSubscriptionStatus(status: string): boolean {
   return status === 'active' || status === 'trialing'

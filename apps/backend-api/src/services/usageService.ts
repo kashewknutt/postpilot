@@ -21,13 +21,18 @@ export async function getUsageSummary(sql: Sql, userId: string): Promise<UsageSu
   const isSubscribed = isActiveSubscriptionStatus(status)
   const usedThisMonth = await countGenerationsThisMonth(sql, userId)
 
+  const profileRows = await sql<{ free_allowance: number }[]>`
+    SELECT free_allowance FROM public.profiles WHERE id = ${userId} LIMIT 1
+  `
+  const freeAllowance = profileRows[0]?.free_allowance ?? FREE_MONTHLY_GENERATIONS
+
   return {
     plan: isSubscribed ? 'pro' : 'free',
     usedThisMonth,
-    freeAllowance: FREE_MONTHLY_GENERATIONS,
+    freeAllowance,
     remainingFree: isSubscribed
-      ? FREE_MONTHLY_GENERATIONS
-      : Math.max(0, FREE_MONTHLY_GENERATIONS - usedThisMonth),
+      ? freeAllowance
+      : Math.max(0, freeAllowance - usedThisMonth),
     isSubscribed,
   }
 }
@@ -42,13 +47,13 @@ export async function canUserGenerate(
     return { allowed: true, usage }
   }
 
-  if (usage.usedThisMonth < FREE_MONTHLY_GENERATIONS) {
+  if (usage.usedThisMonth < usage.freeAllowance) {
     return { allowed: true, usage }
   }
 
   return {
     allowed: false,
     usage,
-    reason: `You've used your ${FREE_MONTHLY_GENERATIONS} free generations this month. Upgrade to continue.`,
+    reason: `You've used your ${usage.freeAllowance} free generations this month. Upgrade to continue.`,
   }
 }
