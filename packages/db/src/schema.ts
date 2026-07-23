@@ -23,6 +23,7 @@ export const profiles = pgTable(
     id: uuid('id').primaryKey(),
     fullName: text('full_name'),
     avatarUrl: text('avatar_url'),
+    freeAllowance: integer('free_allowance').default(5).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
